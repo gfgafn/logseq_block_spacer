@@ -1,0 +1,30 @@
+{
+  "name": "logseq_block_spacer",
+  "version": "0.0.0",
+  "description": "A plugin for Logseq to keep first child block and last child block empty and insert block between two blocks by click mouse.",
+  "author": "gfgafn",
+  "license": "MIT",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently \"pnpm run res:dev\" \"pnpm rspack build --watch --node-env=development\" --color --prefix-colors red.bold,yellow.bold --names \"res:dev,rspack:dev\" --kill-others",
+    "build": "pnpm rescript build && pnpm rspack build",
+    "res:dev": "rescript build -w",
+    "res:build": "rescript",
+    "res:clean": "rescript clean"
+  },
+  "keywords": [
+    "logseq",
+    "plugin",
+    "rescript"
+  ],
+  "devDependencies": {
+    "@logseq/libs": "^0.0.15",
+    "rescript": "^10.1.4",
+    "@rspack/cli": "^0.2.8",
+    "concurrently": "^8.2.0"
+  },
+  "logseq": {
+    "title": "Block Spacer",
+    "id": "logseq-block-spacer"
+  }
+}
