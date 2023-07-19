@@ -17,8 +17,10 @@
     "plugin",
     "rescript"
   ],
+  "dependencies": {
+    "@logseq/libs": "^0.0.15"
+  },
   "devDependencies": {
-    "@logseq/libs": "^0.0.15",
     "rescript": "^10.1.4",
     "@rspack/cli": "^0.2.8",
     "concurrently": "^8.2.0"
