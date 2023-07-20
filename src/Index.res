@@ -1,22 +1,19 @@
-@module external logseqLibs: 'a = "@logseq/libs"
+let _ = LogseqBindings.logseqLibs
 
-let _ = logseqLibs
+/** Binding of global namespace `logseq` */
+@val
+external logseq: LogseqBindings.LSPluginUser.t = "logseq"
 
-type ls_plugin_user
-@val external logseq: ls_plugin_user = "logseq"
-@send external ready: (ls_plugin_user, ~callback: 'a => unit=?) => promise<'b> = "ready"
-
-type ui_proxy
-@get external ui: ls_plugin_user => ui_proxy = "UI"
-@send external showMsg: (ui_proxy, ~content: string) => unit = "showMsg"
+module LSPluginUser = LogseqBindings.LSPluginUser
+module UIProxy = LogseqBindings.UIProxy
 
 let main = () => {
   let content = "Hello World from Logseq"
-  logseq->ui->showMsg(~content)->ignore
+  logseq->LSPluginUser.ui->UIProxy.showMsg(~content)->ignore
 }
 
 try {
-  logseq->ready(~callback=main)->ignore
+  logseq->LSPluginUser.ready(~callback=main)->ignore
 } catch {
 | Js.Exn.Error(err) => Js.Console.error(err)
 }
