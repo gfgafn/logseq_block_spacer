@@ -9,7 +9,7 @@ module UIProxy = LogseqBindings.UIProxy
 
 let main = () => {
   let content = "Hello World from Logseq"
-  logseq->LSPluginUser.ui->UIProxy.showMsg(~content)->ignore
+  logseq->LSPluginUser.ui->UIProxy.showMsg(~content, ())->ignore
 }
 
 try {
