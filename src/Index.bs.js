@@ -5,7 +5,9 @@ import * as Libs from "@logseq/libs";
 import * as Caml_js_exceptions from "rescript/lib/es6/caml_js_exceptions.js";
 
 function main(param) {
-  logseq.UI.showMsg("Hello World from Logseq", undefined, undefined);
+  logseq.UI.showMsg("logseq.UI.showMsg('something', undefined) don't work)", undefined, undefined);
+  ((logseq.UI.showMsg("logseq.UI.showMsg('something') work")));
+  ((logseq.UI.showMsg("logseq.UI.showMsg('something', 'any string') work", "any string")));
 }
 
 try {
