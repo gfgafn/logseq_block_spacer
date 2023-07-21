@@ -1,19 +1,17 @@
 let _ = LogseqBindings.logseqLibs
 
-/** Binding of global namespace `logseq` */
-@val
-external logseq: LogseqBindings.LSPluginUser.t = "logseq"
+module UI = LogseqBindings.UIProxy
 
-module LSPluginUser = LogseqBindings.LSPluginUser
-module UIProxy = LogseqBindings.UIProxy
+let main: unit => promise<unit> = async () => {
+  // NOTE: must get `logseq` after `logseq.ready` or `logseq` will be `undefined`
+  let {logseq} = module(LogseqBindings)
 
-let main = () => {
   let content = "Hello World from Logseq"
-  logseq->LSPluginUser.ui->UIProxy.showMsg(~content, ())->ignore
+  logseq->LogseqBindings.ui->UI.showMsg(~content, ~status=#success, ())->ignore
 }
 
 try {
-  logseq->LSPluginUser.ready(~callback=main)->ignore
+  LogseqBindings.logseq->LogseqBindings.ready(~callback=() => main()->ignore)->ignore
 } catch {
 | Js.Exn.Error(err) => Js.Console.error(err)
 }

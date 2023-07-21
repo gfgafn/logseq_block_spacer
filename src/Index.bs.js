@@ -4,12 +4,15 @@ import * as Js_exn from "rescript/lib/es6/js_exn.js";
 import * as Libs from "@logseq/libs";
 import * as Caml_js_exceptions from "rescript/lib/es6/caml_js_exceptions.js";
 
-function main(param) {
-  logseq.UI.showMsg("Hello World from Logseq", undefined, undefined);
+async function main(param) {
+  var logseq$1 = logseq;
+  logseq$1.UI.showMsg("Hello World from Logseq", "success", undefined);
 }
 
 try {
-  logseq.ready(main);
+  logseq.ready(function (param) {
+        main(undefined);
+      });
 }
 catch (raw_err){
   var err = Caml_js_exceptions.internalToOCamlException(raw_err);
