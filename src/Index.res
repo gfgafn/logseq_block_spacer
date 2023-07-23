@@ -1,17 +1,17 @@
-let _ = LogseqBindings.logseqLibs
+let _ = LogseqSDK.logseqLibs
 
-module UI = LogseqBindings.UIProxy
+module UI = LogseqSDK.UIProxy
 
 let main: unit => promise<unit> = async () => {
   // NOTE: must get `logseq` after `logseq.ready` or `logseq` will be `undefined`
-  let {logseq} = module(LogseqBindings)
+  let {logseq} = module(LogseqSDK)
 
   let content = "Hello World from Logseq"
-  logseq->LogseqBindings.ui->UI.showMsg(~content, ~status=#success, ())->ignore
+  logseq->LogseqSDK.ui->UI.showMsg(~content, ~status=#success, ())->ignore
 }
 
 try {
-  LogseqBindings.logseq->LogseqBindings.ready(~callback=() => main()->ignore)->ignore
+  LogseqSDK.logseq->LogseqSDK.ready(~callback=() => main()->ignore)->ignore
 } catch {
 | Js.Exn.Error(err) => Js.Console.error(err)
 }
