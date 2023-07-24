@@ -10,9 +10,8 @@ type logseq
 
 /** Binding of global namespace `logseq` */
 @val
+@scope("window")
 external logseq: logseq = "logseq"
-
-@send external ready: (logseq, ~callback: 'a => unit=?) => promise<'b> = "ready"
 
 /** Binding of `interface IUIProxy{...}` */
 module UIProxy = {
@@ -122,9 +121,10 @@ module AppProxy = {
 /** Binding of `interface ILSPluginUser{...}`
  *  `ready`, `UI`, `Editor` method was moved to top level for more clear usage.  
  */
-module LSPluginUser = {
+module LSUserPlugin = {
   type t = logseq
 
+  @send external ready: (t, ~callback: 'a => unit=?) => promise<'b> = "ready"
   @get external isMainUIVisible: t => bool = "isMainUIVisible"
   @send external showMainUI: (t, ~opts: {"autoFocus": bool}=?, unit) => unit = "showMainUI"
   @send

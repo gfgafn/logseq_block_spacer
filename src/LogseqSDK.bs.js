@@ -47,7 +47,7 @@ var StringOrBool = {
 
 var AppProxy = {};
 
-var LSPluginUser = {};
+var LSUserPlugin = {};
 
 export {
   UIProxy ,
@@ -55,6 +55,6 @@ export {
   EditorProxy ,
   StringOrBool ,
   AppProxy ,
-  LSPluginUser ,
+  LSUserPlugin ,
 }
 /* No side effect */
