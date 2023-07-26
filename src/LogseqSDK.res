@@ -123,8 +123,14 @@ module AppProxy = {
  */
 module LSUserPlugin = {
   type t = logseq
+  type base_info = {
+    id: string,
+    name: string,
+    title: string,
+    settings: {"disabled": bool},
+  }
 
-  @send external ready: (t, ~callback: 'a => unit=?) => promise<'b> = "ready"
+  @send external ready: (t, ~callback: base_info => unit=?) => promise<'b> = "ready"
   @get external isMainUIVisible: t => bool = "isMainUIVisible"
   @send external showMainUI: (t, ~opts: {"autoFocus": bool}=?, unit) => unit = "showMainUI"
   @send

@@ -6,13 +6,13 @@ import * as Caml_js_exceptions from "rescript/lib/es6/caml_js_exceptions.js";
 
 var logseq = window.logseq;
 
-async function main(param) {
+async function main(_baseInfo) {
   logseq.UI.showMsg("Hello World from Logseq", "success", undefined);
 }
 
 try {
-  logseq.ready(function (param) {
-        main(undefined);
+  logseq.ready(function (e) {
+        main(e);
       });
 }
 catch (raw_err){
