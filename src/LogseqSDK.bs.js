@@ -4,7 +4,7 @@
 var UIProxy = {};
 
 function isBlockEntity(v) {
-  return (v => ["content","page"].every(k => Object.prototype.hasOwnProperty.call(v, k)))(v);
+  return (v => ["content", "page"].every(k => Object.prototype.hasOwnProperty.call(v, k)))(v);
 }
 
 function classify(v) {
@@ -28,7 +28,7 @@ var BlockOrPageEntity = {
 var EditorProxy = {};
 
 function classify$1(v) {
-  if ((v=> typeof v === "string")(v)) {
+  if (((v) => typeof v === "string")(v)) {
     return {
             TAG: /* String */0,
             _0: v

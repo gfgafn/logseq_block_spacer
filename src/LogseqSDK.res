@@ -63,7 +63,7 @@ module BlockOrPageEntity: {
   type case = BlockEntity(block_entity) | PageEntity(page_entity)
 
   let isBlockEntity: t => bool = v =>
-    %raw(`v => ["content","page"].every(k => Object.prototype.hasOwnProperty.call(v, k))`)(v)
+    %raw(`v => ["content", "page"].every(k => Object.prototype.hasOwnProperty.call(v, k))`)(v)
 
   let classify = (v: t): case => {
     if isBlockEntity(v) {
@@ -77,13 +77,40 @@ module BlockOrPageEntity: {
 /** Binding of `interface IEditorProxy{...}` */
 module EditorProxy = {
   type t
+  type insertBlockOpts = {
+    before?: bool,
+    sibling?: bool,
+    isPageBlock?: bool,
+    focus?: bool,
+    customUUID?: string,
+    properties?: Js.Dict.t<string>,
+  }
 
+  @sned
+  external exitEditingMode: (t, ~selectBlock: bool=?, unit) => promise<unit> = "exitEditingMode"
   @send external getCurrentBlock: (t, unit) => promise<Js.Null.t<block_entity>> = "getCurrentBlock"
+  @send
+  external getSelectedBlocks: (t, unit) => promise<Js.Null.t<array<block_entity>>> =
+    "getSelectedBlocks"
   @send
   external getCurrentPage: (t, unit) => promise<Js.Null.t<BlockOrPageEntity.t>> = "getCurrentPage"
   @send
+  external getCurrentPageBlocksTree: (t, unit) => promise<array<block_entity>> =
+    "getCurrentPageBlocksTree"
+  @send external newBlockUUID: (t, unit) => promise<string> = "newBlockUUID"
+  @send
+  external insertBlock: (
+    t,
+    ~srcBlock: BlockOrPageEntity.t=?,
+    ~content: string=?,
+    ~opts: insertBlockOpts=?,
+    unit,
+  ) => promise<Js.Null.t<block_entity>> = "insertBlock"
+  @send
   external getAllPages: (t, ~repo: string=?, unit) => promise<Js.Null.t<array<page_entity>>> =
     "getAllPages"
+  @send external getBlockProperty: (t, block_uuid, string) => promise<'a> = "getBlockProperty"
+  @send external getBlockProperties: (t, block_uuid) => promise<'a> = "getBlockProperties"
 }
 
 module StringOrBool = {
@@ -91,7 +118,7 @@ module StringOrBool = {
   type case = String(string) | Bool(bool)
 
   let classify: t => case = v => {
-    if %raw(`v=> typeof v === "string"`)(v) {
+    if %raw(`(v) => typeof v === "string"`)(v) {
       String((Obj.magic(v): string))
     } else {
       Bool((Obj.magic(v): bool))
@@ -119,7 +146,7 @@ module AppProxy = {
 }
 
 /** Binding of `interface ILSPluginUser{...}`
- *  `ready`, `UI`, `Editor` method was moved to top level for more clear usage.  
+ *  `UI`, `Editor`, `App` method was moved to top level for more clear usage.  
  */
 module LSUserPlugin = {
   type t = logseq
