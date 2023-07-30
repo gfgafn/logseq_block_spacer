@@ -85,6 +85,7 @@ module EditorProxy = {
     customUUID?: string,
     properties?: Js.Dict.t<string>,
   }
+  type getBlockOpts = {includeChildren?: bool}
 
   @sned
   external exitEditingMode: (t, ~selectBlock: bool=?, unit) => promise<unit> = "exitEditingMode"
@@ -106,9 +107,31 @@ module EditorProxy = {
     ~opts: insertBlockOpts=?,
     unit,
   ) => promise<Js.Null.t<block_entity>> = "insertBlock"
+  @send external removeBlock: (t, block_uuid) => promise<unit> = "removeBlock"
+  @send
+  external getBlock: (
+    t,
+    block_uuid,
+    ~opts: getBlockOpts=?,
+    unit,
+  ) => promise<Js.Null.t<block_entity>> = "getBlock"
+  @send
+  external getPage: (t, block_uuid, ~opts: getBlockOpts=?, unit) => promise<page_entity> = "getPage"
   @send
   external getAllPages: (t, ~repo: string=?, unit) => promise<Js.Null.t<array<page_entity>>> =
     "getAllPages"
+  @send
+  external prependBlockInPage: (t, block_uuid, string, unit) => promise<Js.Null.t<block_entity>> =
+    "prependBlockInPage"
+  @send
+  external appendBlockInPage: (t, block_uuid, string, unit) => promise<Js.Null.t<block_entity>> =
+    "appendBlockInPage"
+  @send
+  external getPreviousSiblingBlock: (t, block_uuid) => promise<Js.Null.t<block_entity>> =
+    "getPreviousSiblingBlock"
+  @send
+  external getNextSiblingBlock: (t, block_uuid) => promise<Js.Null.t<block_entity>> =
+    "getNextSiblingBlock"
   @send external getBlockProperty: (t, block_uuid, string) => promise<'a> = "getBlockProperty"
   @send external getBlockProperties: (t, block_uuid) => promise<'a> = "getBlockProperties"
 }
