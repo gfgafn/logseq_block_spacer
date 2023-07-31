@@ -37,11 +37,13 @@ module UIProxy = {
 @unboxed type entity_id = EntityID(float)
 @unboxed type block_uuid = BlockUUID(string)
 
-type block_entity = {
+type rec block_entity = {
   id: entity_id,
   uuid: block_uuid,
   content: string,
   page: {"id": float},
+  // TODO: children?: Array<BlockEntity | BlockUUIDTuple>;
+  children?: array<block_entity>,
 }
 
 type page_entity = {
@@ -62,8 +64,7 @@ module BlockOrPageEntity: {
   type t
   type case = BlockEntity(block_entity) | PageEntity(page_entity)
 
-  let isBlockEntity: t => bool = v =>
-    %raw(`v => ["content", "page"].every(k => Object.prototype.hasOwnProperty.call(v, k))`)(v)
+  let isBlockEntity: t => bool = %raw(`v => ["content", "page"].every(k => Object.prototype.hasOwnProperty.call(v, k))`)
 
   let classify = (v: t): case => {
     if isBlockEntity(v) {
@@ -89,16 +90,16 @@ module EditorProxy = {
 
   @sned
   external exitEditingMode: (t, ~selectBlock: bool=?, unit) => promise<unit> = "exitEditingMode"
-  @send external getCurrentBlock: (t, unit) => promise<Js.Null.t<block_entity>> = "getCurrentBlock"
+  @send external getCurrentBlock: t => promise<Js.Null.t<block_entity>> = "getCurrentBlock"
   @send
-  external getSelectedBlocks: (t, unit) => promise<Js.Null.t<array<block_entity>>> =
-    "getSelectedBlocks"
+  external getSelectedBlocks: t => promise<Js.Null.t<array<block_entity>>> = "getSelectedBlocks"
   @send
-  external getCurrentPage: (t, unit) => promise<Js.Null.t<BlockOrPageEntity.t>> = "getCurrentPage"
+  external getCurrentPage: t => promise<Js.Null.t<BlockOrPageEntity.t>> = "getCurrentPage"
   @send
-  external getCurrentPageBlocksTree: (t, unit) => promise<array<block_entity>> =
-    "getCurrentPageBlocksTree"
-  @send external newBlockUUID: (t, unit) => promise<string> = "newBlockUUID"
+  external getCurrentPageBlocksTree: t => promise<array<block_entity>> = "getCurrentPageBlocksTree"
+  @send
+  external getPageBlocksTree: (t, block_uuid) => promise<array<block_entity>> = "getPageBlocksTree"
+  @send external newBlockUUID: t => promise<string> = "newBlockUUID"
   @send
   external insertBlock: (
     t,
@@ -109,12 +110,8 @@ module EditorProxy = {
   ) => promise<Js.Null.t<block_entity>> = "insertBlock"
   @send external removeBlock: (t, block_uuid) => promise<unit> = "removeBlock"
   @send
-  external getBlock: (
-    t,
-    block_uuid,
-    ~opts: getBlockOpts=?,
-    unit,
-  ) => promise<Js.Null.t<block_entity>> = "getBlock"
+  external getBlock: (t, block_uuid, ~opts: getBlockOpts=?) => promise<Js.Null.t<block_entity>> =
+    "getBlock"
   @send
   external getPage: (t, block_uuid, ~opts: getBlockOpts=?, unit) => promise<page_entity> = "getPage"
   @send
@@ -133,7 +130,9 @@ module EditorProxy = {
   external getNextSiblingBlock: (t, block_uuid) => promise<Js.Null.t<block_entity>> =
     "getNextSiblingBlock"
   @send external getBlockProperty: (t, block_uuid, string) => promise<'a> = "getBlockProperty"
-  @send external getBlockProperties: (t, block_uuid) => promise<'a> = "getBlockProperties"
+  @send
+  external getBlockProperties: (t, block_uuid) => promise<Js.Null.t<Js.Dict.t<'a>>> =
+    "getBlockProperties"
 }
 
 module StringOrBool = {
@@ -155,7 +154,7 @@ type app_user_config = {perferrredDateFormat: string}
 module AppProxy = {
   type t
 
-  @send external getUserConfig: (t, unit) => promise<app_user_config> = "getUserConfigs"
+  @send external getUserConfig: t => promise<app_user_config> = "getUserConfigs"
   @send external queryElementById: (t, string) => promise<StringOrBool.t> = "queryElementById"
   // TODO: return type is `DOMRectReadOnly`
   @send
@@ -185,7 +184,7 @@ module LSUserPlugin = {
   @send external showMainUI: (t, ~opts: {"autoFocus": bool}=?, unit) => unit = "showMainUI"
   @send
   external hideMainUI: (t, ~opts: {"restoreEditingCursor": bool}=?, unit) => unit = "hideMainUI"
-  @send external toggleMainUI: (t, unit) => unit = "toggleMainUI"
+  @send external toggleMainUI: t => unit = "toggleMainUI"
   @send external beforeunload: (t, unit => promise<unit>) => unit = "beforeunload"
 }
 

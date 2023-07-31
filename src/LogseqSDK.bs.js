@@ -3,9 +3,7 @@
 
 var UIProxy = {};
 
-function isBlockEntity(v) {
-  return (v => ["content", "page"].every(k => Object.prototype.hasOwnProperty.call(v, k)))(v);
-}
+var isBlockEntity = (v => ["content", "page"].every(k => Object.prototype.hasOwnProperty.call(v, k)));
 
 function classify(v) {
   if (isBlockEntity(v)) {
