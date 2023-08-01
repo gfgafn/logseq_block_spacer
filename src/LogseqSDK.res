@@ -13,6 +13,8 @@ type logseq
 @scope("window")
 external logseq: logseq = "logseq"
 
+@unboxed type graph_url = GraphURL(string)
+
 /** Binding of `interface IUIProxy{...}` */
 module UIProxy = {
   type t
@@ -51,7 +53,7 @@ type page_entity = {
   uuid: block_uuid,
   name: string,
   originalName: string,
-  \"journal?": bool,
+  @as("journal?") isJournal: bool,
   journalDay?: bool,
 }
 
@@ -103,7 +105,7 @@ module EditorProxy = {
   @send
   external insertBlock: (
     t,
-    ~srcBlock: BlockOrPageEntity.t=?,
+    ~srcBlock: block_uuid=?,
     ~content: string=?,
     ~opts: insertBlockOpts=?,
     unit,
@@ -115,7 +117,7 @@ module EditorProxy = {
   @send
   external getPage: (t, block_uuid, ~opts: getBlockOpts=?, unit) => promise<page_entity> = "getPage"
   @send
-  external getAllPages: (t, ~repo: string=?, unit) => promise<Js.Null.t<array<page_entity>>> =
+  external getAllPages: (t, ~repo: graph_url=?, unit) => promise<Js.Null.t<array<page_entity>>> =
     "getAllPages"
   @send
   external prependBlockInPage: (t, block_uuid, string, unit) => promise<Js.Null.t<block_entity>> =
@@ -148,13 +150,26 @@ module StringOrBool = {
   }
 }
 
-type app_user_config = {perferrredDateFormat: string}
+type app_user_config = {
+  perferrredDateFormat: string,
+  enabledJournals: bool,
+}
+
+type app_graph_info = {
+  name: string,
+  path: string,
+  url: graph_url,
+}
 
 /** Binding of `interface IAppProxy{...}` */
 module AppProxy = {
   type t
+  // https://github.com/logseq/logseq/blob/master/src/main/frontend/state.cljs#L29
+  type state = [#"sidebar/blocks"]
 
   @send external getUserConfig: t => promise<app_user_config> = "getUserConfigs"
+  @send external getStateFromStore: (t, array<state>) => promise<'a> = "getStateFromStore"
+  @send external getCurrentGraph: t => promise<Js.Null.t<app_graph_info>> = "getCurrentGraph"
   @send external queryElementById: (t, string) => promise<StringOrBool.t> = "queryElementById"
   // TODO: return type is `DOMRectReadOnly`
   @send
