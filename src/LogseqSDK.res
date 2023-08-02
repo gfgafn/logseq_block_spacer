@@ -54,7 +54,7 @@ type page_entity = {
   name: string,
   originalName: string,
   @as("journal?") isJournal: bool,
-  journalDay?: bool,
+  journalDay?: float,
 }
 
 module BlockOrPageEntity: {
@@ -164,6 +164,7 @@ type app_graph_info = {
 /** Binding of `interface IAppProxy{...}` */
 module AppProxy = {
   type t
+  type user_off_hook = (. unit) => unit
   // https://github.com/logseq/logseq/blob/master/src/main/frontend/state.cljs#L29
   type state = [#"sidebar/blocks"]
 
@@ -175,10 +176,15 @@ module AppProxy = {
   @send
   external queryElementRect: (t, string) => promise<{"x": float, "y": float}> = "queryElementRect"
   @send
-  external onRouteChanged: (t, {"path": string, "template": string} => unit) => unit =
+  external onCurrentGraphChanged: (t, {.} => unit) => user_off_hook = "onCurrentGraphChanged"
+  @send
+  external onTodayJournalCreated: (t, {"title": string} => unit) => user_off_hook =
+    "onTodayJournalCreated"
+  @send
+  external onRouteChanged: (t, {"path": string, "template": string} => unit) => user_off_hook =
     "onRouteChanged"
   @send
-  external onSidebarVisibleChanged: (t, {"visible": bool} => unit) => unit =
+  external onSidebarVisibleChanged: (t, {"visible": bool} => unit) => user_off_hook =
     "onSidebarVisibleChanged"
 }
 
