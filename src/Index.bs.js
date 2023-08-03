@@ -14,11 +14,10 @@ var editor = logseq.Editor;
 
 var logseqApp = logseq.App;
 
-var date2JournalDay = (// TODO 
-  (date) => {
+var date2JournalDay = (function (date) {
     const year = date.getFullYear().toString();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0'); 
-    const day = date.getDate().toString().padStart(2, '0'); 
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
 
     const dateString = year + month + day;
 
@@ -29,9 +28,11 @@ async function hasBuiltInProperty(block) {
   var properties = Belt_Option.mapWithDefaultU(Caml_option.null_to_opt(await logseq.Editor.getBlockProperties(block.uuid)), {}, (function (p) {
           return p;
         }));
-  var includeBuiltInEditableProperty = (blockProperty => ["icon", "title", "tags", "template", "template-including-parent",
-      "alias", "filters", "public", "exclude-from-graph-view"]
-      .some(k => Object.prototype.hasOwnProperty.call(blockProperty, k)));
+  var includeBuiltInEditableProperty = (function (blockProperty) {
+      return ["icon", "title", "tags", "template", "template-including-parent",
+        "alias", "filters", "public", "exclude-from-graph-view"]
+        .some(k => Object.prototype.hasOwnProperty.call(blockProperty, k))
+    });
   return includeBuiltInEditableProperty(properties);
 }
 
@@ -98,8 +99,30 @@ async function getTodayJournalPageEntity(param) {
                 }));
 }
 
-async function handleJournalPage(param) {
+var cache = {
+  contents: undefined
+};
+
+var todayJournalDay = {
+  contents: undefined
+};
+
+logseqApp.onTodayJournalCreated(function (param) {
+      todayJournalDay.contents = undefined;
+    });
+
+async function getTodayJournalPageEntityMemo(param) {
+  if (Belt_Option.isSome(cache.contents) && Belt_Option.isSome(todayJournalDay.contents)) {
+    return cache.contents;
+  }
   var todayJournalPageEntity = await getTodayJournalPageEntity(undefined);
+  cache.contents = todayJournalPageEntity;
+  todayJournalDay.contents = date2JournalDay(new Date());
+  return todayJournalPageEntity;
+}
+
+async function handleJournalPage(param) {
+  var todayJournalPageEntity = await getTodayJournalPageEntityMemo(undefined);
   var todayJournalPageUuid = Belt_Option.mapWithDefaultU(todayJournalPageEntity, "", (function (page) {
           return page.uuid;
         }));

@@ -14,11 +14,10 @@ let logseqApp = logseq->LogseqSDK.app
 
 /** `Js.Date.t` => `float` of journal day like `20230102` */
 let date2JournalDay: Js.Date.t => float = %raw(` 
-  // TODO 
-  (date) => {
+  function (date) {
     const year = date.getFullYear().toString();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0'); 
-    const day = date.getDate().toString().padStart(2, '0'); 
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
 
     const dateString = year + month + day;
 
@@ -37,10 +36,12 @@ let hasBuiltInProperty = async (block: LogseqSDK.block_entity): bool => {
   // Js.log2("properties: ", properties)
 
   // https://docs.logseq.com/#/page/built-in%20properties
-  let includeBuiltInEditableProperty = %raw(`  
-    blockProperty => ["icon", "title", "tags", "template", "template-including-parent",
-      "alias", "filters", "public", "exclude-from-graph-view"]
-      .some(k => Object.prototype.hasOwnProperty.call(blockProperty, k))
+  let includeBuiltInEditableProperty: Js.Dict.t<'a> => bool = %raw(`  
+    function (blockProperty) {
+      return ["icon", "title", "tags", "template", "template-including-parent",
+        "alias", "filters", "public", "exclude-from-graph-view"]
+        .some(k => Object.prototype.hasOwnProperty.call(blockProperty, k))
+    }
   `)
 
   properties->includeBuiltInEditableProperty
@@ -117,7 +118,7 @@ let handleChildrenBlocks = async (childrens: array<LogseqSDK.block_entity>): uni
   }
 }
 
-let getTodayJournalPageEntity = async () => {
+let getTodayJournalPageEntity = async (): option<LogseqSDK.page_entity> => {
   let userConfig = await logseqApp->App.getUserConfig
 
   // Js.log2("userConfig: ", userConfig)
@@ -169,10 +170,36 @@ let getTodayJournalPageEntity = async () => {
   }
 }
 
+let getTodayJournalPageEntityMemo: unit => promise<option<LogseqSDK.page_entity>> = (
+  () => {
+    let cache: ref<option<LogseqSDK.page_entity>> = ref(None)
+    let todayJournalDay: ref<option<float>> = ref(None)
+
+    logseqApp
+    ->App.onTodayJournalCreated(_ => {
+      todayJournalDay := None
+    })
+    ->ignore
+
+    async () => {
+      if cache.contents->Belt.Option.isSome && todayJournalDay.contents->Belt.Option.isSome {
+        cache.contents
+      } else {
+        let todayJournalPageEntity = await getTodayJournalPageEntity()
+
+        cache := todayJournalPageEntity
+        todayJournalDay := Some(Js.Date.make()->date2JournalDay)
+
+        todayJournalPageEntity
+      }
+    }
+  }
+)()
+
 let handleJournalPage = async (): unit => {
   // "Home/Journal page"->Js.log
 
-  let todayJournalPageEntity = await getTodayJournalPageEntity()
+  let todayJournalPageEntity = await getTodayJournalPageEntityMemo()
   // Js.log2("today journal page: ", todayJournalPageEntity)
 
   let todayJournalPageUuid =
