@@ -16,7 +16,24 @@ external logseq: logseq = "logseq"
 @unboxed type graph_url = GraphURL(string)
 
 /** Binding of `interface IUIProxy{...}` */
-module UIProxy = {
+module UIProxy: {
+  type t
+  @unboxed type ui_message_key = UIMsgKey(string)
+  type partial_ui_msg_options = {
+    key?: ui_message_key,
+    timeout?: float,
+  }
+
+  let showMsg: (
+    t,
+    ~content: string,
+    ~status: [#success | #warning | #error | #info]=?,
+    ~opts: partial_ui_msg_options=?,
+    unit,
+  ) => promise<ui_message_key>
+
+  @send external closeMsg: (t, ui_message_key) => unit = "closeMsg"
+} = {
   type t
   @unboxed type ui_message_key = UIMsgKey(string)
   type partial_ui_msg_options = {
@@ -25,14 +42,23 @@ module UIProxy = {
   }
 
   @send
-  external showMsg: (
+  external showMsg_: (
     t,
     ~content: string,
-    // https://github.com/logseq/logseq/blob/ac1b53544466dedd80b4c9c54479ced63983e022/src/main/frontend/ui.cljs#L219-L229
     ~status: [#success | #warning | #error | #info]=?,
-    ~opts: partial_ui_msg_options=?,
+    ~opts: option<partial_ui_msg_options>=?,
     unit,
   ) => promise<ui_message_key> = "showMsg"
+
+  let showMsg = (
+    logseq: t,
+    ~content: string,
+    // https://github.com/logseq/logseq/blob/458ac81cb412cd309f45e8dd507f1e2d6c5ea1aa/src/main/logseq/sdk/ui.cljs#L15-L25
+    ~status: [#success | #warning | #error | #info]=#success,
+    ~opts: option<partial_ui_msg_options>=?,
+    (),
+  ) => showMsg_(logseq, ~content, ~status, ~opts, ())
+
   @send external closeMsg: (t, ui_message_key) => unit = "closeMsg"
 }
 
