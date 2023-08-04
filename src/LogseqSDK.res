@@ -4,7 +4,7 @@
 
 /** 
  * Abstract type of `logseq` global namespace
- * It's isloated in plugin runtime, it is not the same as `logseq` in browser console.
+ * It's isolated in plugin runtime, it is not the same as `logseq` in browser console.
  */
 type logseq
 
@@ -90,7 +90,7 @@ module EditorProxy = {
   }
   type getBlockOpts = {includeChildren?: bool}
 
-  @sned
+  @send
   external exitEditingMode: (t, ~selectBlock: bool=?, unit) => promise<unit> = "exitEditingMode"
   @send external getCurrentBlock: t => promise<Js.Null.t<block_entity>> = "getCurrentBlock"
   @send
@@ -151,7 +151,7 @@ module StringOrBool = {
 }
 
 type app_user_config = {
-  perferrredDateFormat: string,
+  preferredDateFormat: string,
   enabledJournals: bool,
 }
 
@@ -206,7 +206,7 @@ module LSUserPlugin = {
   @send
   external hideMainUI: (t, ~opts: {"restoreEditingCursor": bool}=?, unit) => unit = "hideMainUI"
   @send external toggleMainUI: t => unit = "toggleMainUI"
-  @send external beforeunload: (t, unit => promise<unit>) => unit = "beforeunload"
+  @send external beforeUnload: (t, unit => promise<unit>) => unit = "beforeunload"
 }
 
 @get external ui: logseq => UIProxy.t = "UI"
