@@ -4,7 +4,6 @@ let _ = LogseqSDK.logseqLibs
 
 module App = LogseqSDK.AppProxy
 module Editor = LogseqSDK.EditorProxy
-module UI = LogseqSDK.UIProxy
 module Plugin = LogseqSDK.LSUserPlugin
 module BlockOrPageEntity = LogseqSDK.BlockOrPageEntity
 
@@ -47,11 +46,11 @@ let hasBuiltInProperty = async (block: LogseqSDK.block_entity): bool => {
   properties->includeBuiltInEditableProperty
 }
 
-let handleChildrenBlocks = async (childrens: array<LogseqSDK.block_entity>): unit => {
-  // Js.log2("childrens of current block: ", childrens)
+let handleChildrenBlocks = async (childrenBlocks: array<LogseqSDK.block_entity>): unit => {
+  // Js.log2("children of current block: ", children)
   let insertContent = ""
 
-  switch childrens {
+  switch childrenBlocks {
   | [] => Js.log("no children in current block/page")
   | [oneChildren] => {
       if !(oneChildren.content == "") {
@@ -69,12 +68,12 @@ let handleChildrenBlocks = async (childrens: array<LogseqSDK.block_entity>): uni
 
       Js.log2("There only one children in current block/page: ", oneChildren)
     }
-  | manyChildrens => {
-      // Js.log2("many childrens in current block/page: ", manyChildrens)
+  | manyChildren => {
+      // Js.log2("many children in current block/page: ", manyChildren)
 
       let (firstChildren, secondChildren) = (
-        manyChildrens->Js.Array2.unsafe_get(0),
-        manyChildrens->Js.Array2.unsafe_get(1),
+        manyChildren->Js.Array2.unsafe_get(0),
+        manyChildren->Js.Array2.unsafe_get(1),
       )
 
       let (firstBlockIsEmpty, secondBlockIsEmpty) = (
@@ -118,7 +117,9 @@ let handleChildrenBlocks = async (childrens: array<LogseqSDK.block_entity>): uni
   }
 }
 
-let getTodayJournalPageEntity = async (): option<LogseqSDK.page_entity> => {
+let getTodayJournalPageEntity = async (graphUrl: LogseqSDK.graph_url): option<
+  LogseqSDK.page_entity,
+> => {
   let userConfig = await logseqApp->App.getUserConfig
 
   // Js.log2("userConfig: ", userConfig)
@@ -129,28 +130,9 @@ let getTodayJournalPageEntity = async (): option<LogseqSDK.page_entity> => {
   } else {
     // Js.log("enabledJournals is true")
 
-    let currentGraphUrl = {
-      let currentGraph = (await logseqApp->App.getCurrentGraph)->Js.Null.toOption
-      switch currentGraph {
-      | Some(currentGraph) => currentGraph.url
-      | None =>
-        logseq
-        ->LogseqSDK.ui
-        ->UI.showMsg(
-          ~content="Can't get current graph, please open a graph first",
-          ~status=#error,
-          (),
-        )
-        ->ignore
-
-        GraphURL("")
-      }
-    }
-    // Js.log2("current graph url: ", currentGraphUrl)
-
     let allPages =
       (await editor
-      ->Editor.getAllPages(~repo=currentGraphUrl, ()))
+      ->Editor.getAllPages(~repo=graphUrl, ()))
       ->Js.Null.toOption
       ->Belt.Option.mapWithDefaultU([], (. page) => page)
 
@@ -170,61 +152,80 @@ let getTodayJournalPageEntity = async (): option<LogseqSDK.page_entity> => {
   }
 }
 
-let getTodayJournalPageEntityMemo: unit => promise<option<LogseqSDK.page_entity>> = (
-  () => {
-    let cache: ref<option<LogseqSDK.page_entity>> = ref(None)
-    let todayJournalDay: ref<option<float>> = ref(None)
+let getCachedTodayPageUuidMemo: LogseqSDK.graph_url => promise<option<LogseqSDK.block_uuid>> = {
+  // FIXME: open a graph then unlink it, the uuid may be regenerated, make the cache invalid
+  let cache: ref<Js.Dict.t<option<LogseqSDK.block_uuid>>> = ref(Js.Dict.empty())
+  let todayJournalDay: ref<option<float>> = ref(None)
 
-    logseqApp
-    ->App.onTodayJournalCreated(_ => {
-      todayJournalDay := None
-    })
-    ->ignore
+  logseqApp
+  ->App.onTodayJournalCreated(_ => {
+    todayJournalDay := None
+    cache := Js.Dict.empty()
+  })
+  ->ignore
 
-    async () => {
-      if cache.contents->Belt.Option.isSome && todayJournalDay.contents->Belt.Option.isSome {
-        cache.contents
-      } else {
-        let todayJournalPageEntity = await getTodayJournalPageEntity()
+  async (graphUrl: LogseqSDK.graph_url) => {
+    let userConfig = await logseqApp->App.getUserConfig
+    let LogseqSDK.GraphURL(graphUrlStr: string) = graphUrl
 
-        cache := todayJournalPageEntity
-        todayJournalDay := Some(Js.Date.make()->date2JournalDay)
+    if (
+      userConfig.enabledJournals &&
+      todayJournalDay.contents->Belt.Option.isSome &&
+      cache.contents->Js.Dict.get(graphUrlStr)->Belt.Option.isSome
+    ) {
+      cache.contents->Js.Dict.get(graphUrlStr)->Belt.Option.getExn
+    } else {
+      todayJournalDay := Some(Js.Date.make()->date2JournalDay)
 
-        todayJournalPageEntity
-      }
+      let todayJournalPageEntityUuid =
+        (await getTodayJournalPageEntity(graphUrl))->Belt.Option.mapU((. page) => page.uuid)
+
+      cache.contents->Js.Dict.set(graphUrlStr, todayJournalPageEntityUuid)
+
+      todayJournalPageEntityUuid
     }
   }
-)()
+}
 
 let handleJournalPage = async (): unit => {
   // "Home/Journal page"->Js.log
 
-  let todayJournalPageEntity = await getTodayJournalPageEntityMemo()
-  // Js.log2("today journal page: ", todayJournalPageEntity)
+  let currentGraphUrl =
+    (await logseqApp
+    ->App.getCurrentGraph)
+    ->Js.Null.toOption
+    ->Belt.Option.mapU((. graph) => graph.url)
 
-  let todayJournalPageUuid =
-    todayJournalPageEntity->Belt.Option.mapWithDefaultU(LogseqSDK.BlockUUID(""), (. page) =>
-      page.uuid
-    )
+  switch currentGraphUrl {
+  | None => "current graph is none"->Js.log
+  | Some(currentGraphUrl) => {
+      let todayJournalPageUuid = await getCachedTodayPageUuidMemo(currentGraphUrl)
 
-  let childrenBlocks = await editor->Editor.getPageBlocksTree(todayJournalPageUuid)
+      switch todayJournalPageUuid {
+      | None => "today journal page uuid is none"->Js.log
+      | Some(todayJournalPageUuid) => {
+          let childrenBlocks = await editor->Editor.getPageBlocksTree(todayJournalPageUuid)
 
-  childrenBlocks->handleChildrenBlocks->ignore
+          childrenBlocks->handleChildrenBlocks->ignore
+        }
+      }
+    }
+  }
 }
 
 let handleNamedPage = async (): unit => {
-  let blockEntity = (await editor->Editor.getCurrentPage)->Js.Null.toOption->Belt.Option.getExn
+  let entity = (await editor->Editor.getCurrentPage)->Js.Null.toOption->Belt.Option.getExn
 
-  switch blockEntity->BlockOrPageEntity.classify {
+  switch entity->BlockOrPageEntity.classify {
   | BlockEntity(blockEntity) => {
-      let block =
+      let currentBlock =
         (await editor
         ->Editor.getBlock(blockEntity.uuid, ~opts={includeChildren: true}))
         ->Js.Null.toOption
         ->Belt.Option.getExn
       // Js.log2("block entity, blocks of this block: ", blocks)
 
-      await block.children->Belt.Option.mapWithDefaultU([], (. c) => c)->handleChildrenBlocks
+      await currentBlock.children->Belt.Option.mapWithDefaultU([], (. c) => c)->handleChildrenBlocks
     }
   | PageEntity(pageEntity) => {
       // Js.log2("page entity, pageEntity: ", pageEntity)
