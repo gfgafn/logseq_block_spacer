@@ -47,71 +47,71 @@ let hasBuiltInProperty = async (block: LogseqSDK.block_entity): bool => {
 }
 
 let handleChildrenBlocks = async (childrenBlocks: array<LogseqSDK.block_entity>): unit => {
-  // Js.log2("children of current block: ", children)
+  // Js.log2("childrenBlocks of current block/page: ", childrenBlocks)
   let insertContent = ""
 
-  switch childrenBlocks {
-  | [] => Js.log("no children in current block/page")
-  | [oneChildren] => {
-      if !(oneChildren.content == "") {
-        "There only one children and it is not empty, insert a block after this block"->Js.log
+  switch childrenBlocks->Belt.Array.get(0) {
+  | None => Js.log("no children in current block/page")
+  | Some(firstBlock) =>
+    if firstBlock.content == "" {
+      Js.log("first block is empty, do nothing")
+    } else {
+      Js.log2("first block is not empty: ", firstBlock)
+
+      if !(await firstBlock->hasBuiltInProperty) {
+        Js.log("first block has no built-in property, insert a block before first block")
 
         editor
         ->Editor.insertBlock(
-          ~srcBlock=oneChildren.uuid,
+          ~srcBlock=firstBlock.uuid,
           ~content=insertContent,
           ~opts={before: true},
           (),
         )
         ->ignore
-      }
+      } else {
+        Js.log("first block has built-in property")
 
-      Js.log2("There only one children in current block/page: ", oneChildren)
-    }
-  | manyChildren => {
-      // Js.log2("many children in current block/page: ", manyChildren)
+        switch childrenBlocks->Belt.Array.get(1) {
+        | None => {
+            Js.log("there is not a second block, insert a block after first block")
 
-      let (firstChildren, secondChildren) = (
-        manyChildren->Js.Array2.unsafe_get(0),
-        manyChildren->Js.Array2.unsafe_get(1),
-      )
+            editor
+            ->Editor.insertBlock(
+              ~srcBlock=firstBlock.uuid,
+              ~content=insertContent,
+              ~opts={sibling: true},
+              (),
+            )
+            ->ignore
+          }
+        | Some(secondBlock) =>
+          if secondBlock.content == "" {
+            Js.log("second block is empty, do nothing")
+          } else {
+            Js.log("second block is not empty, insert a block after first block")
 
-      let (firstBlockIsEmpty, secondBlockIsEmpty) = (
-        firstChildren.content == "",
-        secondChildren.content == "",
-      )
+            editor
+            ->Editor.insertBlock(
+              ~srcBlock=firstBlock.uuid,
+              ~content=insertContent,
+              ~opts={sibling: true},
+              (),
+            )
+            ->ignore
 
-      switch (firstBlockIsEmpty, secondBlockIsEmpty) {
-      | (true, _) => "first children is empty, keep it, do nothing"->Js.log
-      | (false, _) if !(await firstChildren->hasBuiltInProperty) => {
-          "first children is not empty and has no built-in property,\
-           insert a block before this block"->Js.Console.info
-
-          editor
-          ->Editor.insertBlock(
-            ~srcBlock=firstChildren.uuid,
-            ~content=insertContent,
-            ~opts={before: true},
-            (),
-          )
-          ->ignore
+            // don't use the following commented code, because first has built-in property,
+            // the inserted block will not insert before second block, but insert as a child of second block
+            // // editor
+            // // ->Editor.insertBlock(
+            // //   ~srcBlock=secondBlock.uuid,
+            // //   ~content=insertContent,
+            // //   ~opts={before: true},
+            // //   (),
+            // // )
+            // // ->ignore
+          }
         }
-      | (false, false) /* and firstChildren->hasBuiltInProperty */ => {
-          "first children has built-in property and second children are not empty, \
-          insert a block after first children block"->Js.Console.info
-
-          editor
-          ->Editor.insertBlock(
-            ~srcBlock=firstChildren.uuid,
-            ~content=insertContent,
-            ~opts={sibling: true},
-            (),
-          )
-          ->ignore
-        }
-      | (false, true) /* and firstChildren->hasBuiltInProperty */ =>
-        "first children has built-in property, second children is empty, keep it,\
-         do nothing"->Js.Console.info
       }
     }
   }
@@ -223,7 +223,7 @@ let handleNamedPage = async (): unit => {
         ->Editor.getBlock(blockEntity.uuid, ~opts={includeChildren: true}))
         ->Js.Null.toOption
         ->Belt.Option.getExn
-      // Js.log2("block entity, blocks of this block: ", blocks)
+      // Js.log2("block entity, blocks of this block: ", currentBlock)
 
       await currentBlock.children->Belt.Option.mapWithDefaultU([], (. c) => c)->handleChildrenBlocks
     }

@@ -2,6 +2,7 @@
 
 import * as Js_exn from "rescript/lib/es6/js_exn.js";
 import * as Js_dict from "rescript/lib/es6/js_dict.js";
+import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as Js_promise2 from "rescript/lib/es6/js_promise2.js";
@@ -39,46 +40,40 @@ async function hasBuiltInProperty(block) {
 
 async function handleChildrenBlocks(childrenBlocks) {
   var insertContent = "";
-  var len = childrenBlocks.length;
-  if (len !== 1) {
-    if (len !== 0) {
-      var firstChildren = childrenBlocks[0];
-      var secondChildren = childrenBlocks[1];
-      var firstBlockIsEmpty = firstChildren.content === "";
-      var secondBlockIsEmpty = secondChildren.content === "";
-      if (firstBlockIsEmpty) {
-        console.log("first children is empty, keep it, do nothing");
-      } else if (await hasBuiltInProperty(firstChildren)) {
-        if (secondBlockIsEmpty) {
-          console.info("first children has built-in property, second children is empty, keep it,\
-         do nothing");
+  var firstBlock = Belt_Array.get(childrenBlocks, 0);
+  if (firstBlock !== undefined) {
+    if (firstBlock.content === "") {
+      console.log("first block is empty, do nothing");
+      return ;
+    }
+    console.log("first block is not empty: ", firstBlock);
+    if (await hasBuiltInProperty(firstBlock)) {
+      console.log("first block has built-in property");
+      var secondBlock = Belt_Array.get(childrenBlocks, 1);
+      if (secondBlock !== undefined) {
+        if (secondBlock.content === "") {
+          console.log("second block is empty, do nothing");
         } else {
-          console.info("first children has built-in property and second children are not empty, \
-          insert a block after first children block");
-          editor.insertBlock(firstChildren.uuid, insertContent, {
+          console.log("second block is not empty, insert a block after first block");
+          editor.insertBlock(firstBlock.uuid, insertContent, {
                 sibling: true
               });
         }
       } else {
-        console.info("first children is not empty and has no built-in property,\
-           insert a block before this block");
-        editor.insertBlock(firstChildren.uuid, insertContent, {
-              before: true
+        console.log("there is not a second block, insert a block after first block");
+        editor.insertBlock(firstBlock.uuid, insertContent, {
+              sibling: true
             });
       }
       return ;
     }
-    console.log("no children in current block/page");
-    return ;
-  }
-  var oneChildren = childrenBlocks[0];
-  if (oneChildren.content !== "") {
-    console.log("There only one children and it is not empty, insert a block after this block");
-    editor.insertBlock(oneChildren.uuid, insertContent, {
+    console.log("first block has no built-in property, insert a block before first block");
+    editor.insertBlock(firstBlock.uuid, insertContent, {
           before: true
         });
+    return ;
   }
-  console.log("There only one children in current block/page: ", oneChildren);
+  console.log("no children in current block/page");
 }
 
 async function getTodayJournalPageEntity(graphUrl) {
