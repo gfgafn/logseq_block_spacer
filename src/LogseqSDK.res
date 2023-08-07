@@ -204,6 +204,9 @@ module AppProxy = {
   @send
   external onCurrentGraphChanged: (t, {.} => unit) => user_off_hook = "onCurrentGraphChanged"
   @send
+  external onGraphAfterIndexed: (t, {"repo": graph_url} => unit) => user_off_hook =
+    "onGraphAfterIndexed"
+  @send
   external onTodayJournalCreated: (t, {"title": string} => unit) => user_off_hook =
     "onTodayJournalCreated"
   @send

@@ -76,8 +76,7 @@ async function handleChildrenBlocks(childrenBlocks) {
   console.log("no children in current block/page");
 }
 
-async function getTodayJournalPageEntity(graphUrl) {
-  var userConfig = await logseqApp.getUserConfigs();
+async function getTodayJournalPageEntity(graphUrl, userConfig) {
   if (!userConfig.enabledJournals) {
     return ;
   }
@@ -101,18 +100,29 @@ var todayJournalDay = {
   contents: undefined
 };
 
-logseqApp.onTodayJournalCreated(function (param) {
-      todayJournalDay.contents = undefined;
-      cache.contents = {};
-    });
+var hasAddedCallback = {
+  contents: false
+};
 
 async function getCachedTodayPageUuidMemo(graphUrl) {
+  if (!hasAddedCallback.contents) {
+    logseqApp.onTodayJournalCreated(function (param) {
+          todayJournalDay.contents = undefined;
+          cache.contents = {};
+        });
+    logseqApp.onGraphAfterIndexed(function (callBackArg) {
+          var graphUrlStr = callBackArg.repo;
+          console.log("graph " + graphUrlStr + " indexed");
+          cache.contents[graphUrlStr] = undefined;
+        });
+    hasAddedCallback.contents = true;
+  }
   var userConfig = await logseqApp.getUserConfigs();
   if (userConfig.enabledJournals && Belt_Option.isSome(todayJournalDay.contents) && Belt_Option.isSome(Js_dict.get(cache.contents, graphUrl))) {
     return Belt_Option.getExn(Js_dict.get(cache.contents, graphUrl));
   }
   todayJournalDay.contents = date2JournalDay(new Date());
-  var todayJournalPageEntityUuid = Belt_Option.mapU(await getTodayJournalPageEntity(graphUrl), (function (page) {
+  var todayJournalPageEntityUuid = Belt_Option.mapU(await getTodayJournalPageEntity(graphUrl, userConfig), (function (page) {
           return page.uuid;
         }));
   cache.contents[graphUrl] = todayJournalPageEntityUuid;

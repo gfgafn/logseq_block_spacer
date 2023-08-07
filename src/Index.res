@@ -117,13 +117,10 @@ let handleChildrenBlocks = async (childrenBlocks: array<LogseqSDK.block_entity>)
   }
 }
 
-let getTodayJournalPageEntity = async (graphUrl: LogseqSDK.graph_url): option<
-  LogseqSDK.page_entity,
-> => {
-  let userConfig = await logseqApp->App.getUserConfig
-
-  // Js.log2("userConfig: ", userConfig)
-
+let getTodayJournalPageEntity = async (
+  graphUrl: LogseqSDK.graph_url,
+  userConfig: LogseqSDK.app_user_config,
+): option<LogseqSDK.page_entity> => {
   if !userConfig.enabledJournals {
     // Js.log("enabledJournals is false")
     None
@@ -157,14 +154,31 @@ let getCachedTodayPageUuidMemo: LogseqSDK.graph_url => promise<option<LogseqSDK.
   let cache: ref<Js.Dict.t<option<LogseqSDK.block_uuid>>> = ref(Js.Dict.empty())
   let todayJournalDay: ref<option<float>> = ref(None)
 
-  logseqApp
-  ->App.onTodayJournalCreated(_ => {
-    todayJournalDay := None
-    cache := Js.Dict.empty()
-  })
-  ->ignore
+  // register callback by `onTodayJournalCreated` and `onGraphAfterIndexed`
+  // before the `logseq.ready` callback was called will not work,
+  // so register them in `getCachedTodayPageUuidMemo` and use this flag to make sure they are only registered once
+  let hasAddedCallback = ref(false)
 
   async (graphUrl: LogseqSDK.graph_url) => {
+    if !hasAddedCallback.contents {
+      logseqApp
+      ->App.onTodayJournalCreated(_ => {
+        todayJournalDay := None
+        cache := Js.Dict.empty()
+      })
+      ->ignore
+
+      logseqApp
+      ->App.onGraphAfterIndexed(callBackArg => {
+        let LogseqSDK.GraphURL(graphUrlStr: string) = callBackArg["repo"]
+        `graph ${graphUrlStr} indexed`->Js.log
+        cache.contents->Js.Dict.set(graphUrlStr, None)
+      })
+      ->ignore
+
+      hasAddedCallback := true
+    }
+
     let userConfig = await logseqApp->App.getUserConfig
     let LogseqSDK.GraphURL(graphUrlStr: string) = graphUrl
 
@@ -177,8 +191,10 @@ let getCachedTodayPageUuidMemo: LogseqSDK.graph_url => promise<option<LogseqSDK.
     } else {
       todayJournalDay := Some(Js.Date.make()->date2JournalDay)
 
-      let todayJournalPageEntityUuid =
-        (await getTodayJournalPageEntity(graphUrl))->Belt.Option.mapU((. page) => page.uuid)
+      let todayJournalPageEntityUuid: option<_> =
+        (await getTodayJournalPageEntity(graphUrl, userConfig))->Belt.Option.mapU((. page) =>
+          page.uuid
+        )
 
       cache.contents->Js.Dict.set(graphUrlStr, todayJournalPageEntityUuid)
 
@@ -239,6 +255,8 @@ let handleNamedPage = async (): unit => {
 }
 
 let main = async (_baseInfo: Plugin.base_info): unit => {
+  // `onRouteChanged` callback not only called when route in the same graph changed,
+  //  but also called when switch to another graph
   logseqApp
   ->App.onRouteChanged(obj => {
     // Js.log2("\nOnRouteChanged callback argument: ", obj)
