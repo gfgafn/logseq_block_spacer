@@ -123,10 +123,11 @@ module EditorProxy = {
   external getSelectedBlocks: t => promise<Js.Null.t<array<block_entity>>> = "getSelectedBlocks"
   @send
   external getCurrentPage: t => promise<Js.Null.t<BlockOrPageEntity.t>> = "getCurrentPage"
+  external getCurrentPageBlocksTree: t => promise<Js.Null.t<array<block_entity>>> =
+    "getCurrentPageBlocksTree"
   @send
-  external getCurrentPageBlocksTree: t => promise<array<block_entity>> = "getCurrentPageBlocksTree"
-  @send
-  external getPageBlocksTree: (t, block_uuid) => promise<array<block_entity>> = "getPageBlocksTree"
+  external getPageBlocksTree: (t, block_uuid) => promise<Js.Null.t<array<block_entity>>> =
+    "getPageBlocksTree"
   @send external newBlockUUID: t => promise<string> = "newBlockUUID"
   @send
   external insertBlock: (

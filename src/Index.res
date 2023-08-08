@@ -206,7 +206,7 @@ let getCachedTodayPageUuidMemo: LogseqSDK.graph_url => promise<option<LogseqSDK.
 let handleJournalPage = async (): unit => {
   // "Home/Journal page"->Js.log
 
-  let currentGraphUrl =
+  let currentGraphUrl: option<_> =
     (await logseqApp
     ->App.getCurrentGraph)
     ->Js.Null.toOption
@@ -220,7 +220,11 @@ let handleJournalPage = async (): unit => {
       switch todayJournalPageUuid {
       | None => "today journal page uuid is none"->Js.log
       | Some(todayJournalPageUuid) => {
-          let childrenBlocks = await editor->Editor.getPageBlocksTree(todayJournalPageUuid)
+          let childrenBlocks =
+            (await editor
+            ->Editor.getPageBlocksTree(todayJournalPageUuid))
+            ->Js.Null.toOption
+            ->Belt.Option.mapWithDefaultU([], (. blocks) => blocks)
 
           childrenBlocks->handleChildrenBlocks->ignore
         }
@@ -246,7 +250,11 @@ let handleNamedPage = async (): unit => {
   | PageEntity(pageEntity) => {
       // Js.log2("page entity, pageEntity: ", pageEntity)
 
-      let blocksTree = await editor->Editor.getPageBlocksTree(pageEntity.uuid)
+      let blocksTree =
+        (await editor
+        ->Editor.getPageBlocksTree(pageEntity.uuid))
+        ->Js.Null.toOption
+        ->Belt.Option.getExn
       // Js.log2("tree of this page: ", blocksTree)
 
       await blocksTree->handleChildrenBlocks

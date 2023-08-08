@@ -136,7 +136,9 @@ async function handleJournalPage(param) {
   if (currentGraphUrl !== undefined) {
     var todayJournalPageUuid = await getCachedTodayPageUuidMemo(currentGraphUrl);
     if (todayJournalPageUuid !== undefined) {
-      var childrenBlocks = await editor.getPageBlocksTree(todayJournalPageUuid);
+      var childrenBlocks = Belt_Option.mapWithDefaultU(Caml_option.null_to_opt(await editor.getPageBlocksTree(todayJournalPageUuid)), [], (function (blocks) {
+              return blocks;
+            }));
       handleChildrenBlocks(childrenBlocks);
       return ;
     }
@@ -157,7 +159,7 @@ async function handleNamedPage(param) {
                       return c;
                     })));
   }
-  var blocksTree = await editor.getPageBlocksTree(blockEntity._0.uuid);
+  var blocksTree = Belt_Option.getExn(Caml_option.null_to_opt(await editor.getPageBlocksTree(blockEntity._0.uuid)));
   return await handleChildrenBlocks(blocksTree);
 }
 
