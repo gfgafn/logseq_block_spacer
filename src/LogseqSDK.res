@@ -169,7 +169,7 @@ module StringOrBool = {
   type case = String(string) | Bool(bool)
 
   let classify: t => case = v => {
-    if %raw(`(v) => typeof v === "string"`)(v) {
+    if Js.typeof(v) == "string" {
       String((Obj.magic(v): string))
     } else {
       Bool((Obj.magic(v): bool))

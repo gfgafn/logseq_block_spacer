@@ -33,7 +33,7 @@ var BlockOrPageEntity = {
 var EditorProxy = {};
 
 function classify$1(v) {
-  if (((v) => typeof v === "string")(v)) {
+  if (typeof v === "string") {
     return {
             TAG: /* String */0,
             _0: v
