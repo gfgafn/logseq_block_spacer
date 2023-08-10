@@ -149,7 +149,7 @@ let getTodayJournalPageEntity = async (
   }
 }
 
-let getCachedTodayPageUuidMemo: LogseqSDK.graph_url => promise<option<LogseqSDK.block_uuid>> = {
+let getCachedTodayPageUuid: LogseqSDK.graph_url => promise<option<LogseqSDK.block_uuid>> = {
   // FIXME: open a graph then unlink it, the uuid may be regenerated, make the cache invalid
   let cache: ref<Js.Dict.t<option<LogseqSDK.block_uuid>>> = ref(Js.Dict.empty())
   let todayJournalDay: ref<option<float>> = ref(None)
@@ -215,7 +215,7 @@ let handleJournalPage = async (): unit => {
   switch currentGraphUrl {
   | None => "current graph is none"->Js.log
   | Some(currentGraphUrl) => {
-      let todayJournalPageUuid = await getCachedTodayPageUuidMemo(currentGraphUrl)
+      let todayJournalPageUuid = await getCachedTodayPageUuid(currentGraphUrl)
 
       switch todayJournalPageUuid {
       | None => "today journal page uuid is none"->Js.log
@@ -233,10 +233,8 @@ let handleJournalPage = async (): unit => {
   }
 }
 
-let handleNamedPage = async (): unit => {
-  let entity = (await editor->Editor.getCurrentPage)->Js.Null.toOption->Belt.Option.getExn
-
-  switch entity->BlockOrPageEntity.classify {
+let handleNamedPageOrExistingBlock = async (blockOrPageEntity): unit => {
+  switch blockOrPageEntity->BlockOrPageEntity.classify {
   | BlockEntity(blockEntity) => {
       let currentBlock =
         (await editor
@@ -262,6 +260,24 @@ let handleNamedPage = async (): unit => {
   }
 }
 
+let handleHomePage = () => {
+  logseqApp
+  ->App.getUserConfig
+  ->Js.Promise2.then(userConfig => {
+    if userConfig.enabledJournals {
+      handleJournalPage()
+    } else {
+      editor
+      ->Editor.getCurrentPage
+      ->Js.Promise2.then(entity => {
+        let blockOrPageEntity = entity->Js.Null.toOption->Belt.Option.getExn
+        handleNamedPageOrExistingBlock(blockOrPageEntity)
+      })
+    }
+  })
+  ->ignore
+}
+
 let main = async (_baseInfo: Plugin.base_info): unit => {
   // `onRouteChanged` callback not only called when route in the same graph changed,
   //  but also called when switch to another graph
@@ -271,14 +287,21 @@ let main = async (_baseInfo: Plugin.base_info): unit => {
 
     let (_path, template) = (obj["path"], obj["template"])
     switch template {
-    | "/" => handleJournalPage()->ignore
-    | "/page/:name" => handleNamedPage()->ignore
+    | "/" => handleHomePage()->ignore
+    | "/page/:name" =>
+      editor
+      ->Editor.getCurrentPage
+      ->Js.Promise2.then(entity => {
+        let blockOrPageEntity = entity->Js.Null.toOption->Belt.Option.getExn
+        handleNamedPageOrExistingBlock(blockOrPageEntity)
+      })
+      ->ignore
     | _ => ignore()
     }
   })
   ->ignore
 
-  handleJournalPage()->ignore
+  handleHomePage()->ignore
 }
 
 try {

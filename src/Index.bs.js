@@ -104,7 +104,7 @@ var hasAddedCallback = {
   contents: false
 };
 
-async function getCachedTodayPageUuidMemo(graphUrl) {
+async function getCachedTodayPageUuid(graphUrl) {
   if (!hasAddedCallback.contents) {
     logseqApp.onTodayJournalCreated(function (param) {
           todayJournalDay.contents = undefined;
@@ -134,7 +134,7 @@ async function handleJournalPage(param) {
           return graph.url;
         }));
   if (currentGraphUrl !== undefined) {
-    var todayJournalPageUuid = await getCachedTodayPageUuidMemo(currentGraphUrl);
+    var todayJournalPageUuid = await getCachedTodayPageUuid(currentGraphUrl);
     if (todayJournalPageUuid !== undefined) {
       var childrenBlocks = Belt_Option.mapWithDefaultU(Caml_option.null_to_opt(await editor.getPageBlocksTree(todayJournalPageUuid)), [], (function (blocks) {
               return blocks;
@@ -148,9 +148,8 @@ async function handleJournalPage(param) {
   console.log("current graph is none");
 }
 
-async function handleNamedPage(param) {
-  var entity = Belt_Option.getExn(Caml_option.null_to_opt(await editor.getCurrentPage()));
-  var blockEntity = LogseqSDK$LogseqBlockSpacer.BlockOrPageEntity.classify(entity);
+async function handleNamedPageOrExistingBlock(blockOrPageEntity) {
+  var blockEntity = LogseqSDK$LogseqBlockSpacer.BlockOrPageEntity.classify(blockOrPageEntity);
   if (blockEntity.TAG === /* BlockEntity */0) {
     var currentBlock = Belt_Option.getExn(Caml_option.null_to_opt(await editor.getBlock(blockEntity._0.uuid, {
                   includeChildren: true
@@ -163,21 +162,35 @@ async function handleNamedPage(param) {
   return await handleChildrenBlocks(blocksTree);
 }
 
+function handleHomePage(param) {
+  Js_promise2.then(logseqApp.getUserConfigs(), (function (userConfig) {
+          if (userConfig.enabledJournals) {
+            return handleJournalPage(undefined);
+          } else {
+            return Js_promise2.then(editor.getCurrentPage(), (function (entity) {
+                          return handleNamedPageOrExistingBlock(Belt_Option.getExn(entity === null ? undefined : Caml_option.some(entity)));
+                        }));
+          }
+        }));
+}
+
 async function main(_baseInfo) {
   logseqApp.onRouteChanged(function (obj) {
         var template = obj.template;
         switch (template) {
           case "/" :
-              handleJournalPage(undefined);
+              handleHomePage(undefined);
               return ;
           case "/page/:name" :
-              handleNamedPage(undefined);
+              Js_promise2.then(editor.getCurrentPage(), (function (entity) {
+                      return handleNamedPageOrExistingBlock(Belt_Option.getExn(entity === null ? undefined : Caml_option.some(entity)));
+                    }));
               return ;
           default:
             return ;
         }
       });
-  handleJournalPage(undefined);
+  handleHomePage(undefined);
 }
 
 try {
