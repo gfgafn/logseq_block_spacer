@@ -46,7 +46,10 @@ let hasBuiltInProperty = async (block: LogseqSDK.block_entity): bool => {
   properties->includeBuiltInEditableProperty
 }
 
-let handleChildrenBlocks = async (childrenBlocks: array<LogseqSDK.block_entity>): unit => {
+let handleChildrenBlocks = async (
+  parentUuid: LogseqSDK.block_uuid,
+  childrenBlocks: array<LogseqSDK.block_entity>,
+): unit => {
   // Js.log2("childrenBlocks of current block/page: ", childrenBlocks)
   let insertContent = ""
 
@@ -59,16 +62,24 @@ let handleChildrenBlocks = async (childrenBlocks: array<LogseqSDK.block_entity>)
       Js.log2("first block is not empty: ", firstBlock)
 
       if !(await firstBlock->hasBuiltInProperty) {
-        Js.log("first block has no built-in property, insert a block before first block")
-
-        editor
-        ->Editor.insertBlock(
-          ~srcBlock=firstBlock.uuid,
-          ~content=insertContent,
-          ~opts={before: true},
-          (),
+        Js.log(
+          "first block has no built-in property, insert a block to parent block with before option",
         )
+
+        // HACK: insert a block to parent block with before option
+        editor
+        ->Editor.insertBlock(~srcBlock=parentUuid, ~content=insertContent, ~opts={before: true}, ())
         ->ignore
+
+        // Don't use: if the first block is the first block of a page, the inserted block will be inserted as a child of the first block
+        // // editor
+        // // ->Editor.insertBlock(
+        // //   ~srcBlock=firstBlock.uuid,
+        // //   ~content=insertContent,
+        // //   ~opts={before: true},
+        // //   (),
+        // // )
+        // // ->ignore
       } else {
         Js.log("first block has built-in property")
 
@@ -226,7 +237,7 @@ let handleJournalPage = async (): unit => {
             ->Js.Null.toOption
             ->Belt.Option.mapWithDefaultU([], (. blocks) => blocks)
 
-          childrenBlocks->handleChildrenBlocks->ignore
+          handleChildrenBlocks(todayJournalPageUuid, childrenBlocks)->ignore
         }
       }
     }
@@ -243,7 +254,10 @@ let handleNamedPageOrExistingBlock = async (blockOrPageEntity): unit => {
         ->Belt.Option.getExn
       // Js.log2("block entity, blocks of this block: ", currentBlock)
 
-      await currentBlock.children->Belt.Option.mapWithDefaultU([], (. c) => c)->handleChildrenBlocks
+      await handleChildrenBlocks(
+        blockEntity.uuid,
+        currentBlock.children->Belt.Option.mapWithDefaultU([], (. c) => c),
+      )
     }
   | PageEntity(pageEntity) => {
       // Js.log2("page entity, pageEntity: ", pageEntity)
@@ -255,7 +269,7 @@ let handleNamedPageOrExistingBlock = async (blockOrPageEntity): unit => {
         ->Belt.Option.getExn
       // Js.log2("tree of this page: ", blocksTree)
 
-      await blocksTree->handleChildrenBlocks
+      await handleChildrenBlocks(pageEntity.uuid, blocksTree)
     }
   }
 }

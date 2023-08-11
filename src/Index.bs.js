@@ -38,7 +38,7 @@ async function hasBuiltInProperty(block) {
   return includeBuiltInEditableProperty(properties);
 }
 
-async function handleChildrenBlocks(childrenBlocks) {
+async function handleChildrenBlocks(parentUuid, childrenBlocks) {
   var insertContent = "";
   var firstBlock = Belt_Array.get(childrenBlocks, 0);
   if (firstBlock !== undefined) {
@@ -67,8 +67,8 @@ async function handleChildrenBlocks(childrenBlocks) {
       }
       return ;
     }
-    console.log("first block has no built-in property, insert a block before first block");
-    editor.insertBlock(firstBlock.uuid, insertContent, {
+    console.log("first block has no built-in property, insert a block to parent block with before option");
+    editor.insertBlock(parentUuid, insertContent, {
           before: true
         });
     return ;
@@ -139,7 +139,7 @@ async function handleJournalPage(param) {
       var childrenBlocks = Belt_Option.mapWithDefaultU(Caml_option.null_to_opt(await editor.getPageBlocksTree(todayJournalPageUuid)), [], (function (blocks) {
               return blocks;
             }));
-      handleChildrenBlocks(childrenBlocks);
+      handleChildrenBlocks(todayJournalPageUuid, childrenBlocks);
       return ;
     }
     console.log("today journal page uuid is none");
@@ -151,15 +151,17 @@ async function handleJournalPage(param) {
 async function handleNamedPageOrExistingBlock(blockOrPageEntity) {
   var blockEntity = LogseqSDK$LogseqBlockSpacer.BlockOrPageEntity.classify(blockOrPageEntity);
   if (blockEntity.TAG === /* BlockEntity */0) {
-    var currentBlock = Belt_Option.getExn(Caml_option.null_to_opt(await editor.getBlock(blockEntity._0.uuid, {
+    var blockEntity$1 = blockEntity._0;
+    var currentBlock = Belt_Option.getExn(Caml_option.null_to_opt(await editor.getBlock(blockEntity$1.uuid, {
                   includeChildren: true
                 })));
-    return await handleChildrenBlocks(Belt_Option.mapWithDefaultU(currentBlock.children, [], (function (c) {
+    return await handleChildrenBlocks(blockEntity$1.uuid, Belt_Option.mapWithDefaultU(currentBlock.children, [], (function (c) {
                       return c;
                     })));
   }
-  var blocksTree = Belt_Option.getExn(Caml_option.null_to_opt(await editor.getPageBlocksTree(blockEntity._0.uuid)));
-  return await handleChildrenBlocks(blocksTree);
+  var pageEntity = blockEntity._0;
+  var blocksTree = Belt_Option.getExn(Caml_option.null_to_opt(await editor.getPageBlocksTree(pageEntity.uuid)));
+  return await handleChildrenBlocks(pageEntity.uuid, blocksTree);
 }
 
 function handleHomePage(param) {

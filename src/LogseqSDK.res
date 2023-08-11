@@ -111,7 +111,7 @@ module EditorProxy = {
     sibling?: bool,
     isPageBlock?: bool,
     focus?: bool,
-    customUUID?: string,
+    customUUID?: block_uuid,
     properties?: Js.Dict.t<string>,
   }
   type getBlockOpts = {includeChildren?: bool}
