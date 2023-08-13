@@ -7,7 +7,7 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "concurrently \"pnpm run res:dev\" \"pnpm rspack build --watch --node-env=development\" --color --prefix-colors red.bold,yellow.bold --names \"res:dev,rspack:dev\" --kill-others",
-    "build": "pnpm rescript build && pnpm rspack build",
+    "build": "npx rescript build && pnpm rspack build",
     "res:dev": "rescript build -w",
     "res:build": "rescript",
     "res:clean": "rescript clean"
@@ -23,7 +23,11 @@
   "devDependencies": {
     "rescript": "^10.1.4",
     "@rspack/cli": "^0.2.8",
-    "concurrently": "^8.2.0"
+    "concurrently": "^8.2.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "semantic-release": "^21.0.7"
   },
   "logseq": {
     "title": "Block Spacer",

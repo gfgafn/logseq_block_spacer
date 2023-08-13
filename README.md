@@ -32,6 +32,10 @@ Make some changes to the code, then submit a pull request.
 pnpm run build
 ```
 
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md).
+
 ## License
 
 MIT License
