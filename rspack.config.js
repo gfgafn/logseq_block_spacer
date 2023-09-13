@@ -9,9 +9,16 @@ const config = {
     entry: {
         main: './src/Index.bs.js',
     },
+    builtins: {
+        html: [
+            {
+                template: 'index.html',
+            },
+        ],
+    },
     mode: isProduction ? 'production' : 'development',
     output: {
-        filename: 'main.js',
+        filename: '[name]-[contenthash].js',
         path: path.resolve(__dirname, 'dist'),
         clean: true,
     },
