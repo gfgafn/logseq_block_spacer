@@ -1,6 +1,6 @@
 {
   "name": "logseq_block_spacer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A plugin for Logseq to keep first child block and last child block empty and insert block between two blocks by click mouse.",
   "author": "gfgafn",
   "license": "MIT",
